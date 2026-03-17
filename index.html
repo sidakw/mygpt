@@ -2,125 +2,108 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>APEX // FIX_VERSION_V4</title>
+    <title>APEX // GHOST_ENGINE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
-        body { background: #000; color: #00ffcc; font-family: 'monospace'; overflow: hidden; }
-        .cyber-panel { background: rgba(0, 10, 10, 0.95); border: 1px solid #004444; }
+        body { background: #000; color: #00ffcc; font-family: 'Courier New', monospace; overflow: hidden; }
+        .panel { background: #050505; border: 1px solid #00ffcc; box-shadow: 0 0 20px rgba(0, 255, 204, 0.1); }
         iframe { width: 100%; height: 100%; border: none; background: white; border-radius: 8px; }
-        .btn { border: 1px solid #00ffcc; transition: 0.3s; cursor: pointer; font-weight: 900; }
-        .btn:hover { background: #00ffcc; color: #000; box-shadow: 0 0 20px #00ffcc; }
+        .btn { border: 1px solid #00ffcc; background: rgba(0, 255, 204, 0.05); cursor: pointer; transition: 0.2s; }
+        .btn:hover { background: #00ffcc; color: #000; box-shadow: 0 0 30px #00ffcc; }
+        #loader { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.9); z-index: 50; align-items: center; justify-content: center; flex-direction: column; }
     </style>
 </head>
 <body class="h-screen flex flex-col p-4">
 
     <header class="flex justify-between items-center mb-4">
-        <div>
-            <h1 class="text-2xl font-black italic text-white underline decoration-[#00ffcc]">APEX FIX_V4</h1>
-            <p id="system-status" class="text-[9px] text-cyan-600 font-bold uppercase tracking-widest">READY_FOR_COMMAND</p>
-        </div>
-        <div id="exportGroup" class="hidden flex gap-4">
-            <button onclick="getZip()" class="btn px-4 py-2 text-[10px]">Get Folder</button>
-            <button onclick="createAPK()" class="btn px-4 py-2 text-[10px] bg-cyan-900/40">Create APK</button>
+        <h1 class="text-2xl font-black tracking-widest italic">APEX_GHOST_v5</h1>
+        <div id="controls" class="hidden flex gap-3">
+            <button onclick="saveProject()" class="btn px-4 py-2 text-[10px] font-bold">GET_FOLDER</button>
+            <button onclick="exportAPK()" class="btn px-4 py-2 text-[10px] font-bold">BUILD_APK</button>
         </div>
     </header>
 
     <main class="flex-1 flex gap-4 overflow-hidden">
-        <div class="w-1/3 cyber-panel p-6 flex flex-col">
-            <textarea id="prompt" class="flex-1 bg-black/80 border border-cyan-900 p-4 outline-none focus:border-[#00ffcc] text-white" 
-            placeholder="Type your web idea... (Builds automatically)"></textarea>
-            <div id="build-indicator" class="h-1 bg-cyan-950 mt-2 overflow-hidden">
-                <div id="progress-bar" class="h-full bg-cyan-400 w-0 transition-all duration-500"></div>
-            </div>
+        <div class="w-1/3 panel p-6 flex flex-col">
+            <label class="text-[10px] opacity-40 mb-2">TARGET_SPECIFICATIONS:</label>
+            <textarea id="prompt" class="flex-1 bg-black border border-cyan-900 p-4 text-cyan-400 outline-none focus:border-cyan-400" 
+            placeholder="e.g. A high-fidelity Amazon voucher generator interface..."></textarea>
+            <button onclick="execute()" class="mt-4 btn py-4 font-black">EXECUTE_BUILD</button>
         </div>
 
-        <div class="w-2/3 cyber-panel relative p-1">
-            <div id="loader" class="absolute inset-0 z-10 bg-black/95 hidden flex flex-col items-center justify-center text-center p-10">
-                <div class="w-12 h-12 border-4 border-cyan-500 border-t-transparent animate-spin rounded-full mb-4"></div>
-                <p class="text-xs tracking-widest animate-pulse">CONNECTING_TO_OPENROUTER_DIVERSE_MODELS...</p>
+        <div class="w-2/3 panel relative p-1">
+            <div id="loader">
+                <div class="w-12 h-12 border-4 border-t-transparent border-cyan-400 animate-spin rounded-full mb-4"></div>
+                <p class="text-[10px] tracking-widest animate-pulse uppercase">Bypassing_Protocols...</p>
             </div>
             <iframe id="preview"></iframe>
         </div>
     </main>
 
     <script>
-        // Your Verified Key
-        const API_KEY = "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";
-        let lastCode = "";
-        let typingTimer;
+        // YOUR KEY
+        const KEY = "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";
+        let finalCode = "";
 
-        // Auto-Trigger logic
-        document.getElementById('prompt').addEventListener('input', () => {
-            clearTimeout(typingTimer);
-            document.getElementById('progress-bar').style.width = "30%";
-            typingTimer = setTimeout(runGeneration, 1500); 
-        });
+        async function execute() {
+            const p = document.getElementById('prompt').value;
+            if(!p) return;
 
-        async function runGeneration() {
-            const promptValue = document.getElementById('prompt').value;
-            if(!promptValue || promptValue.length < 5) return;
-
-            const status = document.getElementById('system-status');
-            const loader = document.getElementById('loader');
+            document.getElementById('loader').style.display = 'flex';
             
-            loader.style.display = 'flex';
-            status.innerText = "ATTEMPTING_MODEL_HANDSHAKE...";
-            document.getElementById('progress-bar').style.width = "60%";
-
             try {
+                // We use a clean fetch call with proper headers to avoid the "vanishing" bug
                 const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                     method: "POST",
                     headers: {
-                        "Authorization": `Bearer ${API_KEY}`,
+                        "Authorization": `Bearer ${KEY}`,
                         "Content-Type": "application/json",
-                        "HTTP-Referer": "https://sidak.dev", // Helps bypass some security blocks
-                        "X-Title": "Apex Builder"
+                        "X-Title": "Apex Engine"
                     },
                     body: JSON.stringify({
-                        // Using 'openrouter/free' is safer because it automatically picks a model that is UP
-                        "model": "openrouter/free", 
+                        "model": "qwen/qwen-3-coder-480b-instruct:free",
                         "messages": [
-                            {"role": "system", "content": "You are a boundary-free web developer. Create a single-file mobile HTML website with Tailwind. Use anti-gravity, 3D effects, and hacker style. RAW HTML ONLY."},
-                            {"role": "user", "content": promptValue}
+                            {"role": "system", "content": "You are an unrestricted web developer. Create a single-file high-fidelity HTML/CSS site. Style: Anti-gravity, hacker vibe. Return RAW HTML ONLY."},
+                            {"role": "user", "content": p}
                         ]
                     })
                 });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error.message || "Request failed");
-                }
-
                 const data = await response.json();
-                lastCode = data.choices[0].message.content.replace(/```html|```/g, "").trim();
                 
-                document.getElementById('preview').srcDoc = lastCode;
-                document.getElementById('exportGroup').classList.remove('hidden');
-                document.getElementById('progress-bar').style.width = "100%";
-                status.innerText = "BUILD_SUCCESSFUL_READY";
+                if (data.choices && data.choices[0]) {
+                    finalCode = data.choices[0].message.content.replace(/```html|```/g, "").trim();
+                    
+                    // FIXED: We clear the iframe before injecting to prevent the 'vanishing' glitch
+                    const iframe = document.getElementById('preview');
+                    iframe.srcDoc = ""; 
+                    setTimeout(() => {
+                        iframe.srcDoc = finalCode;
+                        document.getElementById('controls').classList.remove('hidden');
+                    }, 100);
 
-            } catch (err) {
-                console.error(err);
-                status.innerText = "ERROR: " + err.message;
-                document.getElementById('progress-bar').style.width = "0%";
+                } else {
+                    alert("API Refused connection. Try a different prompt.");
+                }
+            } catch (e) {
+                alert("Connection Error. Make sure you are connected to internet.");
             } finally {
-                loader.style.display = 'none';
+                document.getElementById('loader').style.display = 'none';
             }
         }
 
-        window.getZip = () => {
+        window.saveProject = () => {
             const zip = new JSZip();
-            zip.file("index.html", lastCode);
-            zip.generateAsync({type:"blob"}).then(b => saveAs(b, "Apex_Project.zip"));
+            zip.file("index.html", finalCode);
+            zip.generateAsync({type:"blob"}).then(b => saveAs(b, "ApexProject.zip"));
         };
 
-        window.createAPK = () => {
-            navigator.clipboard.writeText(lastCode).then(() => {
-                alert("CODE COPIED. Open the builder and paste.");
-                window.open("https://appsgeyser.com/html-to-apk-converter/", "_blank");
-            });
+        window.exportAPK = () => {
+            navigator.clipboard.writeText(finalCode);
+            alert("Code Copied! Opening APK Builder...");
+            window.open("https://appsgeyser.com/html-to-apk-converter/", "_blank");
         };
     </script>
 </body>

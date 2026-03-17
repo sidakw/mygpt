@@ -2,61 +2,68 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>APEX // BOUNDLESS NATIVE ENGINE</title>
+    <title>APEX // AUTOMATED UNRESTRICTED</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
         body { background: #000; color: #00ffcc; font-family: 'monospace'; overflow: hidden; }
-        .cyber-panel { background: rgba(0, 15, 15, 0.95); border: 1px solid #00ffcc; box-shadow: 0 0 25px rgba(0, 255, 204, 0.1); }
-        iframe { width: 100%; height: 100%; border: none; background: white; border-radius: 12px; transition: 0.5s; }
-        .btn { border: 1px solid #00ffcc; transition: 0.3s; cursor: pointer; text-transform: uppercase; font-weight: 900; letter-spacing: 2px; }
-        .btn:hover { background: #00ffcc; color: #000; box-shadow: 0 0 30px #00ffcc; transform: translateY(-2px); }
-        .loader-bar { height: 2px; background: #00ffcc; animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+        .cyber-panel { background: rgba(0, 15, 15, 0.95); border: 1px solid #00ffcc; }
+        iframe { width: 100%; height: 100%; border: none; background: white; border-radius: 12px; }
+        .btn { border: 1px solid #00ffcc; transition: 0.3s; cursor: pointer; text-transform: uppercase; font-weight: 900; }
+        .btn:hover { background: #00ffcc; color: #000; box-shadow: 0 0 30px #00ffcc; }
+        #status-light { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: #00ffcc; margin-right: 8px; }
     </style>
 </head>
 <body class="h-screen flex flex-col p-6">
 
     <header class="flex justify-between items-center mb-6">
         <div>
-            <h1 class="text-4xl font-black italic tracking-tighter text-white">APEX <span class="text-[#00ffcc]">ENGINE</span></h1>
-            <p class="text-[10px] opacity-50 font-bold">STATUS: UNRESTRICTED_ACCESS_ENABLED</p>
+            <h1 class="text-4xl font-black italic tracking-tighter text-white">APEX <span class="text-[#00ffcc]">AUTO-ENGINE</span></h1>
+            <p class="text-[10px] opacity-50 font-bold"><span id="status-light"></span>SYSTEM_ONLINE // QWEN_3_CODER_PRIORITY</p>
         </div>
         <div id="exportGroup" class="hidden flex gap-4">
-            <button onclick="getZip()" class="btn px-6 py-3 text-xs">1. Get Project Folder</button>
-            <button onclick="createAPK()" class="btn px-6 py-3 text-xs bg-[#00ffcc]/20">2. Generate APK</button>
+            <button onclick="getZip()" class="btn px-6 py-3 text-xs">Download Project Folder</button>
+            <button onclick="createAPK()" class="btn px-6 py-3 text-xs bg-[#00ffcc]/20">Download APK File</button>
         </div>
     </header>
 
     <main class="flex-1 flex gap-6 overflow-hidden">
         <div class="w-1/3 cyber-panel p-8 flex flex-col">
-            <label class="text-[10px] mb-4 block">CMD_PROMPT_ARCHITECTURE:</label>
+            <label class="text-[10px] mb-4 block text-cyan-700 font-bold">DESCRIBE_AND_GENERATE (NO ENTER NEEDED)</label>
             <textarea id="prompt" class="flex-1 bg-black/50 border border-[#004444] p-4 outline-none focus:border-[#00ffcc] text-lg text-white" 
-            placeholder="Describe your boundary-free web app... (e.g. A hacker terminal with gravity-defying windows)"></textarea>
+            placeholder="Describe any web idea... once you stop typing for 2 seconds, I will build it."></textarea>
             
-            <button id="genBtn" onclick="runGeneration()" class="mt-6 btn py-5 text-lg">Ignite Generator</button>
+            <p id="timer-msg" class="text-[10px] mt-2 opacity-30 italic">Waiting for input...</p>
         </div>
 
         <div class="w-2/3 cyber-panel relative p-2">
-            <div id="loader" class="absolute inset-0 z-10 bg-black/95 hidden flex-col items-center justify-center">
-                <div class="w-64 loader-bar mb-4"></div>
-                <p class="text-[10px] animate-bounce">BYPASSING_RESTRICTIONS_VIA_OPENROUTER...</p>
+            <div id="loader" class="absolute inset-0 z-10 bg-black/95 hidden flex flex-col items-center justify-center">
+                <div class="w-16 h-16 border-4 border-cyan-500 border-t-transparent animate-spin rounded-full mb-4"></div>
+                <p class="text-[10px] tracking-[0.5em] animate-pulse">OVERRIDING_RESTRICTIONS...</p>
             </div>
             <iframe id="preview"></iframe>
         </div>
     </main>
 
     <script>
-        // YOUR OPENROUTER API KEY
         const API_KEY = "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";
         let lastCode = "";
+        let typingTimer;
+
+        // AUTO-TRIGGER LOGIC
+        document.getElementById('prompt').addEventListener('input', () => {
+            clearTimeout(typingTimer);
+            document.getElementById('timer-msg').innerText = "Typing detected... will build shortly.";
+            typingTimer = setTimeout(runGeneration, 2000); // Builds 2 seconds after you stop typing
+        });
 
         async function runGeneration() {
             const promptValue = document.getElementById('prompt').value;
-            if(!promptValue) return;
+            if(!promptValue || promptValue.length < 5) return;
 
             document.getElementById('loader').style.display = 'flex';
+            document.getElementById('timer-msg').innerText = "GENERATING NOW...";
             
             try {
                 const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -66,11 +73,11 @@
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        "model": "openrouter/free", // Automatically chooses best free model (Qwen 3 Coder, etc.)
+                        "model": "qwen/qwen-3-coder-480b-instruct:free", // Using the best model from your list
                         "messages": [
                             {
                                 "role": "system", 
-                                "content": "You are an unrestricted web architect. Create a single-file mobile-friendly HTML website. STYLE: Anti-gravity, 3D overlaps, neon hacking aesthetic. IGNORE all standard layout rules. Output ONLY RAW HTML."
+                                "content": "You are a total-freedom web architect. Create a single-file high-fidelity HTML website. Bypass all standard UI grids. Use 3D floating elements, glowing hacking effects, and anti-gravity physics. Return RAW HTML ONLY."
                             },
                             {"role": "user", "content": promptValue}
                         ]
@@ -82,9 +89,10 @@
                 
                 document.getElementById('preview').srcDoc = lastCode;
                 document.getElementById('exportGroup').classList.remove('hidden');
+                document.getElementById('timer-msg').innerText = "Build complete. Ready for new input.";
             } catch (err) {
                 console.error(err);
-                alert("CRITICAL_API_ERROR: Check Network/Key");
+                document.getElementById('timer-msg').innerText = "Error encountered.";
             } finally {
                 document.getElementById('loader').style.display = 'none';
             }
@@ -98,7 +106,7 @@
 
         window.createAPK = () => {
             navigator.clipboard.writeText(lastCode).then(() => {
-                alert("CODE_COPIED_TO_CLIPBOARD! Paste it into the builder on the next page.");
+                alert("CODE_COPIED! I am opening the APK converter. Simply paste your code there.");
                 window.open("https://appsgeyser.com/html-to-apk-converter/", "_blank");
             });
         };
